@@ -3,8 +3,10 @@ package main
 import (
 	"TechSchoolGRPC/pb"
 	"TechSchoolGRPC/service"
+	"crypto/tls"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
@@ -54,6 +56,20 @@ func accessibleRoles() map[string][]string {
 	}
 }
 
+func loadTLSCredentials() (credentials.TransportCredentials, error){
+	serverCert, err := tls.LoadX509KeyPair("cert/server-cert.pem", "cert/server-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth: tls.NoClientCert,
+	}
+
+	return credentials.NewTLS(config), nil
+}
+
 func main() {
 	//port := flag.Int("port", 0, "the server port")
 	//flag.Parse()
@@ -73,9 +89,14 @@ func main() {
 										service.NewDiskImageStore("img"),
 										service.NewInMemoryRatingStore())
 
+	tlsCredentials, err := loadTLSCredentials()
+	if err != nil {
+		log.Fatal("cannot load TLS credentials: ", err)
+	}
 	interceptor := service.NewAuthInterceptor(jwtManager, accessibleRoles())
 
 	grpcServer := grpc.NewServer(
+		grpc.Creds(tlsCredentials),
 		grpc.UnaryInterceptor(interceptor.Unary()),
 		grpc.StreamInterceptor(interceptor.Stream()),
 	)
