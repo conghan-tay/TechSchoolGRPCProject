@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+// By default protoc will use filename as Go Package
+// specify the Go Package for our proto files in order for them
+// to be able to output to same folder
+package techschool.pcbook;
+
+option go_package = "pb";
+
+import "memory_message.proto";
+
+message CPU {
+    string brand = 1;
+    string name = 2;
+    uint32 number_cores = 3;
+    uint32 number_threads = 4;
+    double min_ghz = 5;
+    double max_ghz = 6;
+}
+
+message GPU {
+    string brand = 1;
+    string name = 2;
+    double min_ghz = 3;
+    double max_ghz = 4;
+    Memory memory = 5;
+}
