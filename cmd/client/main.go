@@ -4,9 +4,13 @@ import (
 	"TechSchoolGRPC/client"
 	"TechSchoolGRPC/pb"
 	"TechSchoolGRPC/sample"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"io/ioutil"
 	"log"
 	"strings"
 	"time"
@@ -219,12 +223,35 @@ func authMethods() map[string]bool {
 	}
 }
 
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	pemServerCA, err := ioutil.ReadFile("cert/ca-cert.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(pemServerCA) {
+		return nil, fmt.Errorf("failed to add server CA's certificate")
+	}
+
+	config := &tls.Config{
+		RootCAs:certPool,
+	}
+
+	return credentials.NewTLS(config), nil
+}
+
 func main() {
 	serverAddress := flag.String("address", "", "the server address")
 	flag.Parse()
 	log.Printf("dial server %s", *serverAddress)
 
-	cc1, err := grpc.Dial(*serverAddress, grpc.WithInsecure())
+	tlsCredentials, err := loadTLSCredentials()
+	if err != nil {
+		log.Fatal("cannot load TLS credentials: ", err)
+	}
+
+	cc1, err := grpc.Dial(*serverAddress, grpc.WithTransportCredentials(tlsCredentials))
 	if err != nil {
 		log.Fatal("cannot dial server", err)
 	}
@@ -235,15 +262,15 @@ func main() {
 		log.Fatal("cannot create auth interceptor: ", err)
 	}
 
-	cc2, err := grpc.Dial(*serverAddress, grpc.WithInsecure(),
+	cc2, err := grpc.Dial(*serverAddress, grpc.WithTransportCredentials(tlsCredentials),
 						grpc.WithUnaryInterceptor(interceptor.Unary()),
 						grpc.WithStreamInterceptor(interceptor.Stream()))
 	if err != nil {
 		log.Fatal("cannot dial server", err)
 	}
 	laptopClient := client.NewLaptopClient(cc2)
-	testCreateLaptop(laptopClient)
-	testSearchLaptop(laptopClient)
-	testUploadImage(laptopClient)
+	//testCreateLaptop(laptopClient)
+	//testSearchLaptop(laptopClient)
+	//testUploadImage(laptopClient)
 	testRateLaptop(laptopClient)
 }
