@@ -5,7 +5,7 @@ syntax = "proto3";
 // to be able to output to same folder
 package techschool.pcbook;
 
-option go_package = "pb";
+option go_package = ".;pb";
 
 import "memory_message.proto";
 

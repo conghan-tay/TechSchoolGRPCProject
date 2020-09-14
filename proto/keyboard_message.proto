@@ -7,7 +7,7 @@ syntax = "proto3";
 // because we cannot have period in package name
 package techschool.pcbook;
 
-option go_package = "pb";
+option go_package = ".;pb";
 
 message Keyboard {
     enum Layout {
